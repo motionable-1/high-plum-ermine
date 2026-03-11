@@ -1,56 +1,178 @@
-import { AbsoluteFill, Artifact, useCurrentFrame, useVideoConfig } from "remotion";
-import { loadFont } from "@remotion/google-fonts/SpaceMono";
+import React from "react";
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+  Sequence,
+  Artifact,
+  Audio,
+  interpolate,
+} from "remotion";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { blurDissolve } from "../library/components/layout/transitions/presentations/blurDissolve";
+import { morph } from "../library/components/layout/transitions/presentations/morph";
 
-const LoaderDots = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+import { Background } from "./scenes/Background";
+import { HeroScene } from "./scenes/HeroScene";
+import { CapabilitiesScene } from "./scenes/CapabilitiesScene";
+import { CoworkScene } from "./scenes/CoworkScene";
+import { PhilosophyScene } from "./scenes/PhilosophyScene";
+import { CTAScene } from "./scenes/CTAScene";
 
-  const dot = (index: number) => {
-    const phase = (frame / fps) * 2 * Math.PI + index * 0.8;
-    return 0.35 + Math.max(0, Math.sin(phase)) * 0.65;
-  };
+// Audio URLs
+const MUSIC_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/music/1773245003530_jbclzne545i_music_Modern_clean_corpora.mp3";
+const WHOOSH_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/sfx/1773244937343_hmsazgj6f09_sfx_subtle_modern_tech_whoosh_tran.mp3";
+const CHIME_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/sfx/1773244949403_1fz95a0iacd_sfx_soft_digital_notification_chim.mp3";
 
-  return (
-    <span className="inline-flex gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="inline-block text-sky-300"
-          style={{ opacity: dot(i) }}
-        >
-          .
-        </span>
-      ))}
-    </span>
-  );
+/*
+  SCENE TIMELINE (30fps):
+  ────────────────────────────
+  Scene 1 - Hero:         0–150  (5s)
+  Transition:             20 frames overlap
+  Scene 2 - Capabilities: ~130–300 (5.7s)
+  Transition:             20 frames overlap
+  Scene 3 - Cowork:       ~280–450 (5.7s)
+  Transition:             20 frames overlap
+  Scene 4 - Philosophy:   ~430–570 (4.7s)
+  Transition:             20 frames overlap
+  Scene 5 - CTA:          ~550–720 (5.7s)
+
+  Total = 150+170+170+140+170 - 4*20 = 800 - 80 = 720 frames
+  Plus ~30 frames breathing room at end = 750 frames = 25s
+*/
+
+const SCENE_DURATIONS = {
+  hero: 150,
+  capabilities: 170,
+  cowork: 170,
+  philosophy: 140,
+  cta: 170,
 };
-
+const TRANSITION_DURATION = 20;
 export const Main: React.FC = () => {
-  const { fontFamily } = loadFont();
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+
   return (
     <>
-      {/* Leave this here to generate a thumbnail */}
+      {/* Thumbnail artifact */}
       {frame === 0 && (
         <Artifact content={Artifact.Thumbnail} filename="thumbnail.jpeg" />
       )}
-      <AbsoluteFill className="flex items-center justify-center bg-[#0f1115]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.28),transparent_45%),radial-gradient(circle_at_70%_60%,rgba(16,185,129,0.2),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px] opacity-40" />
-        <div
-          className="flex flex-col items-center gap-4 text-center text-white drop-shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
-          style={{ fontFamily, fontWeight: 700, letterSpacing: "0.01em" }}
-        >
-          <div className="text-4xl md:text-5xl font-bold">
-            <span className="font-extrabold text-sky-300">TypeFrames</span> is
-            building your video
-            <LoaderDots />
-          </div>
-          <div className="text-base md:text-lg text-white/70">
-            Rendering scenes, timing transitions, and polishing frames.
-          </div>
-        </div>
+
+      {/* Persistent animated background */}
+      <AbsoluteFill>
+        <Background />
       </AbsoluteFill>
+
+      {/* Scene transitions */}
+      <AbsoluteFill>
+        <TransitionSeries>
+          {/* Scene 1: Hero */}
+          <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.hero}>
+            <HeroScene />
+          </TransitionSeries.Sequence>
+
+          <TransitionSeries.Transition
+            presentation={blurDissolve()}
+            timing={linearTiming({ durationInFrames: TRANSITION_DURATION })}
+          />
+
+          {/* Scene 2: Capabilities */}
+          <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.capabilities}>
+            <CapabilitiesScene />
+          </TransitionSeries.Sequence>
+
+          <TransitionSeries.Transition
+            presentation={morph({ shape: "rounded", contract: 20, blur: 8 })}
+            timing={linearTiming({ durationInFrames: TRANSITION_DURATION })}
+          />
+
+          {/* Scene 3: Cowork */}
+          <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.cowork}>
+            <CoworkScene />
+          </TransitionSeries.Sequence>
+
+          <TransitionSeries.Transition
+            presentation={blurDissolve()}
+            timing={linearTiming({ durationInFrames: TRANSITION_DURATION })}
+          />
+
+          {/* Scene 4: Philosophy */}
+          <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.philosophy}>
+            <PhilosophyScene />
+          </TransitionSeries.Sequence>
+
+          <TransitionSeries.Transition
+            presentation={morph({ shape: "rounded", contract: 15, blur: 6 })}
+            timing={linearTiming({ durationInFrames: TRANSITION_DURATION })}
+          />
+
+          {/* Scene 5: CTA */}
+          <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.cta}>
+            <CTAScene />
+          </TransitionSeries.Sequence>
+        </TransitionSeries>
+      </AbsoluteFill>
+
+      {/* Background Music */}
+      <Audio
+        src={MUSIC_URL}
+        volume={(f) => {
+          // Fade in over 1s, steady, fade out over 2s at end
+          const fadeIn = interpolate(f, [0, fps], [0, 0.2], {
+            extrapolateRight: "clamp",
+          });
+          const fadeOut = interpolate(
+            f,
+            [durationInFrames - 2 * fps, durationInFrames],
+            [0.2, 0],
+            { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+          );
+          return Math.min(fadeIn, fadeOut);
+        }}
+      />
+
+      {/* Transition SFX */}
+      <Sequence from={SCENE_DURATIONS.hero - TRANSITION_DURATION / 2}>
+        <Audio src={WHOOSH_URL} volume={0.15} />
+      </Sequence>
+      <Sequence
+        from={
+          SCENE_DURATIONS.hero +
+          SCENE_DURATIONS.capabilities -
+          TRANSITION_DURATION -
+          TRANSITION_DURATION / 2
+        }
+      >
+        <Audio src={CHIME_URL} volume={0.12} />
+      </Sequence>
+      <Sequence
+        from={
+          SCENE_DURATIONS.hero +
+          SCENE_DURATIONS.capabilities +
+          SCENE_DURATIONS.cowork -
+          2 * TRANSITION_DURATION -
+          TRANSITION_DURATION / 2
+        }
+      >
+        <Audio src={WHOOSH_URL} volume={0.13} />
+      </Sequence>
+      <Sequence
+        from={
+          SCENE_DURATIONS.hero +
+          SCENE_DURATIONS.capabilities +
+          SCENE_DURATIONS.cowork +
+          SCENE_DURATIONS.philosophy -
+          3 * TRANSITION_DURATION -
+          TRANSITION_DURATION / 2
+        }
+      >
+        <Audio src={CHIME_URL} volume={0.1} />
+      </Sequence>
     </>
   );
 };
